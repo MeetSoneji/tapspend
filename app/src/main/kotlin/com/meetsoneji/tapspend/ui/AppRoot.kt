@@ -47,7 +47,7 @@ import com.meetsoneji.tapspend.data.UserSettings
 import com.meetsoneji.tapspend.ui.screens.CategoriesScreen
 import com.meetsoneji.tapspend.ui.screens.EditScreen
 import com.meetsoneji.tapspend.ui.screens.HistoryScreen
-import com.meetsoneji.tapspend.ui.screens.HomeScreen
+import com.meetsoneji.tapspend.ui.screens.InboxScreen
 import com.meetsoneji.tapspend.ui.screens.InsightsScreen
 import com.meetsoneji.tapspend.ui.screens.OnboardingScreen
 import com.meetsoneji.tapspend.ui.screens.SettingsScreen
@@ -75,17 +75,19 @@ fun AppRoot(
     settings: UserSettings?,
     pendingEditId: String?,
     onEditHandled: () -> Unit,
+    pendingReviewId: String? = null,
+    onReviewHandled: () -> Unit = {},
 ) {
     TapspendTheme(
         mode = settings?.theme ?: com.meetsoneji.tapspend.data.ThemeMode.SYSTEM,
         dynamicColor = settings?.dynamicColor ?: false,
         hapticsEnabled = settings?.hapticsEnabled ?: true,
     ) {
-        Surface(Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground) {
+        Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background, contentColor = MaterialTheme.colorScheme.onBackground) {
             when {
                 settings == null -> Unit // splash is still showing; nothing composed yet
                 !settings.onboardingDone -> OnboardingScreen()
-                else -> MainNav(pendingEditId, onEditHandled)
+                else -> MainNav(pendingEditId, onEditHandled, pendingReviewId, onReviewHandled)
             }
         }
     }
@@ -94,7 +96,7 @@ fun AppRoot(
 private data class Tab(val route: Any, val icon: @Composable () -> Unit, val label: Int, val matches: (androidx.navigation.NavDestination) -> Boolean)
 
 @Composable
-private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
+private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit, pendingReviewId: String?, onReviewHandled: () -> Unit) {
     val nav = rememberNavController()
     val tabs = listOf(
         Tab(HomeRoute, { androidx.compose.material3.Icon(Icons.Default.Home, null) }, R.string.nav_home) { it.hasRoute<HomeRoute>() },
@@ -106,6 +108,9 @@ private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
     val destination = backStack?.destination
     val showBar = destination != null && tabs.any { it.matches(destination) }
 
+    LaunchedEffect(pendingReviewId) {
+        if (pendingReviewId != null) nav.navigate(HomeRoute) { popUpTo(nav.graph.findStartDestination().id); launchSingleTop = true }
+    }
     LaunchedEffect(pendingEditId) {
         if (pendingEditId != null) {
             nav.navigate(EditRoute(pendingEditId))
@@ -114,11 +119,11 @@ private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
     }
 
     Scaffold(
-        containerColor = androidx.compose.ui.graphics.Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0),
         bottomBar = {
             if (showBar) {
-                NavigationBar(containerColor = MaterialTheme.colorScheme.surfaceContainer.copy(alpha = 0.92f)) {
+                NavigationBar(containerColor = MaterialTheme.colorScheme.background, tonalElevation = 0.dp) {
                     tabs.forEach { tab ->
                         val label = stringResource(tab.label)
                         NavigationBarItem(
@@ -131,7 +136,7 @@ private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
                                 }
                             },
                             icon = tab.icon,
-                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.18f), selectedIconColor = MaterialTheme.colorScheme.primary, selectedTextColor = MaterialTheme.colorScheme.primary),
+                            colors = androidx.compose.material3.NavigationBarItemDefaults.colors(indicatorColor = MaterialTheme.colorScheme.surfaceContainerHigh, selectedIconColor = MaterialTheme.colorScheme.onSurface, selectedTextColor = MaterialTheme.colorScheme.onSurface),
                             label = { Text(label) },
                         )
                     }
@@ -140,7 +145,13 @@ private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
         },
     ) { padding ->
         NavHost(nav, startDestination = HomeRoute, modifier = Modifier.padding(padding)) {
-            composable<HomeRoute> { HomeScreen(onEdit = { nav.navigate(EditRoute(it)) }, onSeeAll = { nav.navigate(HistoryRoute()) }) }
+            composable<HomeRoute> {
+                InboxScreen(
+                    reviewId = pendingReviewId, onReviewHandled = onReviewHandled,
+                    onEdit = { nav.navigate(EditRoute(it)) }, onSeeAll = { nav.navigate(HistoryRoute()) },
+                    onSetUpCapture = { nav.navigate(SettingsRoute) { launchSingleTop = true } },
+                )
+            }
             composable<HistoryRoute> { entry ->
                 val route = entry.toRoute<HistoryRoute>()
                 HistoryScreen(initialCategoryId = route.categoryId, onEdit = { nav.navigate(EditRoute(it)) })

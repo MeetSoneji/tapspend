@@ -1,23 +1,18 @@
-Log it in a flash. Know where it went.
+Tapspend reads the bank and card alerts already arriving on your phone, works out what each payment was, and puts it in an inbox for a one-tap OK.
 
-Tapspend is a tiny, private expense tracker built around one promise: log an expense in under 3 seconds, without even opening the app.
+<b>Catches what you forget</b>
+• Reads bank and card SMS and UPI app notifications on the device.
+• Suggests a category for each payment and learns from your changes.
+• Confirm from the notification itself, or later in the inbox. A daily reminder at a time you choose.
+• Imports the last 90 days of alerts on first run.
 
-<b>Fast</b>
-• Home-screen widget: tap +, type the amount, tap a category. Done.
-• Quick Settings tile and a long-press app shortcut for the same sheet.
-• Big custom keypad with haptics, Indian number grouping (₹1,00,000) and any currency.
+<b>Understands credit cards</b>
+• A swipe is the spend; paying the card bill is not counted again.
+• Self-transfers, wallet top-ups, investments and ATM withdrawals are not spending.
+• Refunds and cashback lower your spend. Add silent refunds in one tap.
 
-<b>Private by design</b>
-• No INTERNET permission at all. It cannot send your data anywhere, and you can verify that in the manifest.
-• No accounts, no ads, no analytics, no trackers.
-• Hide amounts on the widget and hide the app from screenshots and Recents.
-
-<b>Useful</b>
-• Daily and category insights, search and filters.
-• Salary-cycle months (start the month on any day 1 to 28).
-• Export to CSV, or a password-encrypted backup you can restore on a new phone.
-
-<b>Gentle on your battery</b>
-• No background services, no polling. The widget refreshes only when your data changes, plus one tiny alarm at midnight.
+<b>Private</b>
+• No internet permission at all. Message text is never stored.
+• No accounts, ads, analytics or trackers.
 
 Free and open source (Apache-2.0).

@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 /** The only exported activity (launcher + shortcut action). Everything else is internal. */
 class MainActivity : ComponentActivity() {
     private var pendingEditId by mutableStateOf<String?>(null)
+    private var pendingReviewId by mutableStateOf<String?>(null)
     private var settingsNow by mutableStateOf<UserSettings?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -42,7 +43,10 @@ class MainActivity : ComponentActivity() {
         }
 
         setContent {
-            AppRoot(settings = settingsNow, pendingEditId = pendingEditId, onEditHandled = { pendingEditId = null })
+            AppRoot(
+                settings = settingsNow, pendingEditId = pendingEditId, onEditHandled = { pendingEditId = null },
+                pendingReviewId = pendingReviewId, onReviewHandled = { pendingReviewId = null },
+            )
         }
     }
 
@@ -57,14 +61,16 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handleIntent(intent: Intent?) {
-        if (intent?.action == ACTION_EDIT) {
-            pendingEditId = intent.getStringExtra(EXTRA_EXPENSE_ID)?.takeIf { it.length in 1..64 }
+        when (intent?.action) {
+            ACTION_EDIT -> pendingEditId = intent.getStringExtra(EXTRA_EXPENSE_ID)?.takeIf { it.length in 1..64 }
+            ACTION_REVIEW -> pendingReviewId = intent.getStringExtra(EXTRA_EXPENSE_ID)?.takeIf { it.length in 1..64 } ?: ""
         }
     }
 
     companion object {
         const val ACTION_QUICK_LOG = "com.meetsoneji.tapspend.ACTION_QUICK_LOG"
         const val ACTION_EDIT = "com.meetsoneji.tapspend.ACTION_EDIT"
+        const val ACTION_REVIEW = "com.meetsoneji.tapspend.ACTION_REVIEW"
         const val EXTRA_EXPENSE_ID = "expense_id"
     }
 }

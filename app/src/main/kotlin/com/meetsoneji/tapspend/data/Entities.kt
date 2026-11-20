@@ -36,6 +36,7 @@ data class CategoryEntity(
         Index("local_date"),
         Index(value = ["category_id", "local_date"]),
         Index("occurred_at"),
+        Index("status"),
     ],
 )
 data class ExpenseEntity(
@@ -50,6 +51,43 @@ data class ExpenseEntity(
     @ColumnInfo(name = "created_at") val createdAt: Long,
     @ColumnInfo(name = "updated_at") val updatedAt: Long,
     @ColumnInfo(name = "deleted_at") val deletedAt: Long? = null,
+    /** EXPENSE, REFUND, CASHBACK, TRANSFER, INCOME or IGNORED (see TxnKind). Only the first three count as spend. */
+    @ColumnInfo(defaultValue = "'EXPENSE'") val kind: String = "EXPENSE",
+    /** PENDING = auto-detected and waiting for your OK; CONFIRMED = counted. */
+    @ColumnInfo(defaultValue = "'CONFIRMED'") val status: String = TxnStatus.CONFIRMED,
+    /** MANUAL, SMS or NOTIFICATION. */
+    @ColumnInfo(defaultValue = "'MANUAL'") val source: String = TxnSource.MANUAL,
+    val merchant: String? = null,
+    @ColumnInfo(name = "account_id") val accountId: String? = null,
+    /** UPI / bank reference, used to avoid counting the same payment twice. */
+    val ref: String? = null,
+    /** For a refund: the expense it refunds. */
+    @ColumnInfo(name = "linked_id") val linkedId: String? = null,
+)
+
+object TxnStatus { const val PENDING = "PENDING"; const val CONFIRMED = "CONFIRMED" }
+object TxnSource { const val MANUAL = "MANUAL"; const val SMS = "SMS"; const val NOTIFICATION = "NOTIFICATION" }
+
+/** A card, bank account or wallet seen in your alerts. Id is deterministic ("card-5678") so SMS and app alerts agree. */
+@Immutable
+@Entity(tableName = "account")
+data class AccountEntity(
+    @PrimaryKey val id: String,
+    val kind: String,
+    val institution: String?,
+    val last4: String?,
+    val label: String,
+    @ColumnInfo(name = "statement_day") val statementDay: Int? = null,
+    @ColumnInfo(name = "created_at") val createdAt: Long,
+)
+
+/** What you decided for a merchant, so the same merchant is pre-filled correctly next time. */
+@Entity(tableName = "merchant_rule")
+data class MerchantRuleEntity(
+    @PrimaryKey @ColumnInfo(name = "merchant_key") val merchantKey: String,
+    val kind: String,
+    @ColumnInfo(name = "category_id") val categoryId: String?,
+    @ColumnInfo(name = "updated_at") val updatedAt: Long,
 )
 
 data class CurrencyTotal(val currency: String, val total: Long)

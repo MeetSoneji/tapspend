@@ -24,12 +24,16 @@ data class UserSettings(
     val monthStartDay: Int = 1,
     val saveOnCategoryTap: Boolean = true,
     val hapticsEnabled: Boolean = true,
-    val theme: ThemeMode = ThemeMode.DARK,
+    val theme: ThemeMode = ThemeMode.SYSTEM,
     val dynamicColor: Boolean = false,
     val appLockEnabled: Boolean = false,
     val hideAmountsOnWidget: Boolean = false,
     val secureScreen: Boolean = false,
     val onboardingDone: Boolean = false,
+    /** Daily nudge for spends still waiting for review. Minutes after midnight (default 9 pm). */
+    val reminderEnabled: Boolean = true,
+    val reminderMinutes: Int = 21 * 60,
+    val historyImported: Boolean = false,
 ) {
     companion object {
         /** Device locale's currency; falls back to INR . */
@@ -56,6 +60,9 @@ class SettingsRepository(private val context: Context) {
         val hideWidget = booleanPreferencesKey("hide_amounts_widget")
         val secure = booleanPreferencesKey("secure_screen")
         val onboarded = booleanPreferencesKey("onboarding_done")
+        val reminderOn = booleanPreferencesKey("reminder_on")
+        val reminderAt = intPreferencesKey("reminder_minutes")
+        val imported = booleanPreferencesKey("history_imported")
     }
 
     val flow: Flow<UserSettings> = context.settingsStore.data.map { p ->
@@ -73,6 +80,9 @@ class SettingsRepository(private val context: Context) {
             hideAmountsOnWidget = p[K.hideWidget] ?: d.hideAmountsOnWidget,
             secureScreen = p[K.secure] ?: d.secureScreen,
             onboardingDone = p[K.onboarded] ?: d.onboardingDone,
+            reminderEnabled = p[K.reminderOn] ?: d.reminderEnabled,
+            reminderMinutes = (p[K.reminderAt] ?: d.reminderMinutes).coerceIn(0, 24 * 60 - 1),
+            historyImported = p[K.imported] ?: d.historyImported,
         )
     }
 
@@ -88,6 +98,8 @@ class SettingsRepository(private val context: Context) {
     suspend fun setHideAmountsOnWidget(v: Boolean) = edit { it[K.hideWidget] = v }
     suspend fun setSecureScreen(v: Boolean) = edit { it[K.secure] = v }
     suspend fun setOnboardingDone(v: Boolean) = edit { it[K.onboarded] = v }
+    suspend fun setReminder(enabled: Boolean, minutes: Int) = edit { it[K.reminderOn] = enabled; it[K.reminderAt] = minutes.coerceIn(0, 24 * 60 - 1) }
+    suspend fun setHistoryImported(v: Boolean) = edit { it[K.imported] = v }
 
     private suspend fun edit(block: (androidx.datastore.preferences.core.MutablePreferences) -> Unit) {
         context.settingsStore.edit { block(it) }

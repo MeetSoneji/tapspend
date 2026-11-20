@@ -57,7 +57,7 @@ import com.meetsoneji.tapspend.data.ThemeMode
 import com.meetsoneji.tapspend.data.UserSettings
 import com.meetsoneji.tapspend.ui.appViewModel
 import com.meetsoneji.tapspend.ui.categoryName
-import com.meetsoneji.tapspend.ui.components.SectionLabel
+import com.meetsoneji.tapspend.ui.components.SectionHeader
 import com.meetsoneji.tapspend.ui.entry.CurrencyPickerDialog
 import com.meetsoneji.tapspend.ui.requestAddTile
 import com.meetsoneji.tapspend.ui.requestPinWidget
@@ -230,22 +230,29 @@ fun SettingsScreen(onCategories: () -> Unit) {
     val importLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let { vm.readImport(it, null) } }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState())) {
-        Text(stringResource(R.string.nav_settings), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(16.dp))
+        Text(stringResource(R.string.nav_settings), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(start = 20.dp, top = 16.dp, bottom = 4.dp))
 
-        SectionLabel(stringResource(R.string.set_general))
-        Row2(R.string.set_name, settings.userName.ifBlank { stringResource(R.string.set_name_empty) }) { dialog = "name" }
+        SectionLabel(stringResource(R.string.set_capture))
+        CaptureSetup(settings)
+
+        SectionLabel(stringResource(R.string.set_you))
+        Row2(R.string.set_name, settings.userName.ifBlank { stringResource(R.string.set_name_empty) } + "\n" + stringResource(R.string.set_name_why)) { dialog = "name" }
         Row2(R.string.set_currency, settings.currency) { dialog = "currency" }
-
-        SectionLabel(stringResource(R.string.set_month))
         Row2(R.string.set_month_start, stringResource(R.string.set_month_start_value, settings.monthStartDay)) { dialog = "startday" }
 
         SectionLabel(stringResource(R.string.categories_title))
         Row2(R.string.set_manage_categories, stringResource(R.string.set_manage_categories_sub), onClick = onCategories)
 
+        SectionLabel(stringResource(R.string.set_backup))
+        Row2(R.string.set_export_csv, stringResource(R.string.set_export_csv_sub)) { csvLauncher.launch("tapspend-${java.time.LocalDate.now()}.csv") }
+        Row2(R.string.set_export_backup, stringResource(R.string.set_export_backup_sub)) { dialog = "exportpw" }
+        Row2(R.string.set_import_backup, stringResource(R.string.set_import_backup_sub)) { importLauncher.launch(arrayOf("*/*")) }
+
         SectionLabel(stringResource(R.string.set_appearance))
         Row2(R.string.set_theme, stringResource(when (settings.theme) { ThemeMode.SYSTEM -> R.string.theme_system; ThemeMode.LIGHT -> R.string.theme_light; ThemeMode.DARK -> R.string.theme_dark })) { dialog = "theme" }
-        if (Build.VERSION.SDK_INT >= 31) SwitchRow(R.string.set_dynamic, R.string.set_dynamic_sub, settings.dynamicColor, vm::setDynamic)
         SwitchRow(R.string.set_haptics, R.string.set_haptics_sub, settings.hapticsEnabled, vm::setHaptics)
+        SwitchRow(R.string.set_hide_widget, R.string.set_hide_widget_sub, settings.hideAmountsOnWidget, vm::setHideWidget)
+        SwitchRow(R.string.set_secure, R.string.set_secure_sub, settings.secureScreen, vm::setSecure)
 
         SectionLabel(stringResource(R.string.set_logging))
         SwitchRow(R.string.set_save_on_tap, R.string.set_save_on_tap_sub, settings.saveOnCategoryTap, vm::setSaveOnTap)
@@ -255,22 +262,12 @@ fun SettingsScreen(onCategories: () -> Unit) {
         Row2(R.string.set_add_tile, stringResource(R.string.set_add_tile_sub)) {
             if (!requestAddTile(context)) Toast.makeText(context, R.string.msg_tile_manual, Toast.LENGTH_LONG).show()
         }
-        Text(stringResource(R.string.quick_tap_tip), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
-
-        SectionLabel(stringResource(R.string.set_privacy))
-        SwitchRow(R.string.set_hide_widget, R.string.set_hide_widget_sub, settings.hideAmountsOnWidget, vm::setHideWidget)
-        SwitchRow(R.string.set_secure, R.string.set_secure_sub, settings.secureScreen, vm::setSecure)
-
-        SectionLabel(stringResource(R.string.set_backup))
-        Row2(R.string.set_export_csv, stringResource(R.string.set_export_csv_sub)) { csvLauncher.launch("tapspend-${java.time.LocalDate.now()}.csv") }
-        Row2(R.string.set_export_backup, stringResource(R.string.set_export_backup_sub)) { dialog = "exportpw" }
-        Row2(R.string.set_import_backup, stringResource(R.string.set_import_backup_sub)) { importLauncher.launch(arrayOf("*/*")) }
 
         SectionLabel(stringResource(R.string.set_about))
         Row2(R.string.set_version, BuildConfig.VERSION_NAME, onClick = {})
         Row2(R.string.set_privacy_policy, stringResource(R.string.set_privacy_policy_sub)) { dialog = "privacy" }
         Row2(R.string.set_licences, stringResource(R.string.set_licences_sub)) { dialog = "licences" }
-        Text(stringResource(R.string.about_footer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(16.dp))
+        Text(stringResource(R.string.about_footer), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(20.dp))
     }
 
     when (dialog) {
@@ -301,8 +298,11 @@ fun SettingsScreen(onCategories: () -> Unit) {
 }
 
 @Composable
+private fun SectionLabel(text: String) = SectionHeader(text)
+
+@Composable
 private fun Row2(@StringRes title: Int, subtitle: String, onClick: () -> Unit) {
-    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick).padding(horizontal = 16.dp, vertical = 8.dp)) {
+    Column(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable(onClick = onClick).padding(horizontal = 20.dp, vertical = 10.dp)) {
         Text(stringResource(title), style = MaterialTheme.typography.bodyLarge)
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
@@ -310,7 +310,7 @@ private fun Row2(@StringRes title: Int, subtitle: String, onClick: () -> Unit) {
 
 @Composable
 private fun SwitchRow(@StringRes title: Int, @StringRes subtitle: Int, checked: Boolean, onChange: (Boolean) -> Unit) {
-    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onChange(!checked) }.padding(horizontal = 16.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(Modifier.fillMaxWidth().heightIn(min = 56.dp).clickable { onChange(!checked) }.padding(horizontal = 20.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(stringResource(title), style = MaterialTheme.typography.bodyLarge)
             Text(stringResource(subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)

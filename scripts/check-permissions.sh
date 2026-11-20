@@ -7,7 +7,10 @@ MANIFEST="${1:-app/build/intermediates/merged_manifests/release/processReleaseMa
 [ -f "$MANIFEST" ] || { echo "Merged manifest not found: $MANIFEST (run ./gradlew :app:assembleRelease first)"; exit 2; }
 
 ALLOWED=(
-  "android.permission.RECEIVE_BOOT_COMPLETED"   # midnight widget reset + WorkManager (Glance)
+  "android.permission.RECEIVE_BOOT_COMPLETED"   # midnight widget reset, review reminder, WorkManager (Glance)
+  "android.permission.RECEIVE_SMS"              # auto-capture of bank alerts (parsed on device)
+  "android.permission.READ_SMS"                 # one-time import of the last 90 days of bank alerts
+  "android.permission.POST_NOTIFICATIONS"       # review prompts and the daily reminder
   "android.permission.WAKE_LOCK"                # WorkManager (Glance widget updates)
   "android.permission.ACCESS_NETWORK_STATE"     # WorkManager; cannot send data
 )

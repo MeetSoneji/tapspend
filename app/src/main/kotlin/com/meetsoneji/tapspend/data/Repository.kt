@@ -32,9 +32,9 @@ class ExpenseRepository(
     fun observeToday() = expenses.observeDayTotal(LocalDate.now(clock).toString())
     fun observeRecent(limit: Int) = expenses.observeRecent(limit)
     fun observeExpense(id: String) = expenses.observe(id)
-    fun observeHistory(p: Period, categoryId: String?, query: String?): Flow<List<ExpenseEntity>> {
+    fun observeHistory(p: Period, categoryId: String?, query: String?, includeTransfers: Boolean = false): Flow<List<ExpenseEntity>> {
         val q = query?.trim()?.takeIf { it.isNotEmpty() }?.replace("\\", "\\\\")?.replace("%", "\\%")?.replace("_", "\\_")
-        return expenses.observeHistory(p.startIso, p.endIso, categoryId, q)
+        return expenses.observeHistory(p.startIso, p.endIso, categoryId, q, includeTransfers)
     }
 
     suspend fun addExpense(
@@ -76,6 +76,64 @@ class ExpenseRepository(
     }
 
     suspend fun getExpense(id: String) = expenses.get(id)
+
+    // ---- review queue ----
+    val pending: Flow<List<ExpenseEntity>> = expenses.observePending()
+    fun observeCashback(p: Period) = expenses.observeCashback(p.startIso, p.endIso)
+    fun observeRefundedFor(id: String) = expenses.observeRefundedFor(id)
+    val accounts = db.accountDao().observeAll()
+
+    /** Confirms a detected transaction, optionally with a different category or kind, and remembers the choice. */
+    suspend fun approve(id: String, categoryId: String? = null, kind: String? = null) {
+        val e = expenses.get(id) ?: return
+        val now = clock.millis()
+        val updated = e.copy(
+            status = TxnStatus.CONFIRMED,
+            categoryId = categoryId?.takeIf { categories.get(it) != null } ?: e.categoryId,
+            kind = kind ?: e.kind,
+            updatedAt = now,
+        )
+        db.withTransaction {
+            expenses.upsert(updated)
+            if (updated.kind == "EXPENSE") categories.touch(updated.categoryId, now)
+            updated.merchant?.let { m ->
+                db.ruleDao().upsert(
+                    MerchantRuleEntity(
+                        com.meetsoneji.tapspend.core.capture.TxnParser.merchantKey(m), updated.kind,
+                        if (updated.kind == "EXPENSE" || updated.kind == "REFUND") updated.categoryId else null, now,
+                    ),
+                )
+            }
+        }
+        onChanged()
+    }
+
+    /** Approves every pending item with its suggested category and kind. */
+    suspend fun approveAllPending(): Int {
+        val list = expenses.pending()
+        list.forEach { approve(it.id) }
+        return list.size
+    }
+
+    /**
+     * Records a refund that arrived without any SMS: a REFUND entry linked to the original, in the same category,
+     * dated today, so it reduces this month's spend.
+     */
+    suspend fun markRefunded(original: ExpenseEntity, amountMinor: Long, at: Instant = clock.instant()) {
+        if (amountMinor <= 0 || amountMinor > original.amountMinor) throw InvalidExpenseException("Refund must be between 0 and the original amount")
+        val now = clock.millis()
+        val zone = clock.zone
+        expenses.upsert(
+            ExpenseEntity(
+                id = UUID.randomUUID().toString(), amountMinor = amountMinor, currency = original.currency,
+                categoryId = original.categoryId, note = null, occurredAt = at.toEpochMilli(), zoneId = zone.id,
+                localDate = at.atZone(zone).toLocalDate().toString(), createdAt = now, updatedAt = now,
+                kind = "REFUND", status = TxnStatus.CONFIRMED, source = TxnSource.MANUAL,
+                merchant = original.merchant, accountId = original.accountId, linkedId = original.id,
+            ),
+        )
+        onChanged()
+    }
 
     suspend fun softDelete(id: String) {
         expenses.softDelete(id, clock.millis())

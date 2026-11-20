@@ -4,6 +4,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,7 +25,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -42,14 +42,18 @@ import com.meetsoneji.tapspend.AppContainer
 import com.meetsoneji.tapspend.R
 import com.meetsoneji.tapspend.core.BudgetPeriod
 import com.meetsoneji.tapspend.core.Period
+import com.meetsoneji.tapspend.core.capture.TxnKind
+import com.meetsoneji.tapspend.data.AccountEntity
 import com.meetsoneji.tapspend.data.CategoryEntity
 import com.meetsoneji.tapspend.data.ExpenseEntity
 import com.meetsoneji.tapspend.data.UserSettings
 import com.meetsoneji.tapspend.ui.appViewModel
 import com.meetsoneji.tapspend.ui.categoryName
+import com.meetsoneji.tapspend.ui.components.CategoryDot
 import com.meetsoneji.tapspend.ui.components.DayHeader
-import com.meetsoneji.tapspend.ui.components.EmptyState
+import com.meetsoneji.tapspend.ui.components.EmptyNote
 import com.meetsoneji.tapspend.ui.components.ExpenseRow
+import com.meetsoneji.tapspend.ui.components.MonthSwitcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -63,13 +67,8 @@ import kotlinx.coroutines.launch
 import java.time.LocalDate
 
 data class HistoryState(
-    val settings: UserSettings,
-    val period: Period,
-    val periodLabel: String,
-    val categoryFilter: String?,
-    val query: String,
-    val expenses: List<ExpenseEntity>,
-    val categories: List<CategoryEntity>,
+    val settings: UserSettings, val period: Period, val periodLabel: String, val categoryFilter: String?, val query: String,
+    val includeTransfers: Boolean, val expenses: List<ExpenseEntity>, val categories: List<CategoryEntity>, val accounts: Map<String, AccountEntity>,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
@@ -77,20 +76,19 @@ class HistoryViewModel(private val c: AppContainer) : ViewModel() {
     private val monthOffset = MutableStateFlow(0)
     val categoryFilter = MutableStateFlow<String?>(null)
     val query = MutableStateFlow("")
+    val includeTransfers = MutableStateFlow(false)
 
-    val state: StateFlow<HistoryState?> = combine(c.settings.flow, monthOffset, categoryFilter, query.debounce(200)) { s, off, cat, q ->
-        Inputs(s, off, cat, q)
-    }.flatMapLatest { i ->
-        var p = BudgetPeriod.containing(LocalDate.now(c.clock), i.settings.monthStartDay)
-        repeat(-i.offset) { p = BudgetPeriod.previous(p, i.settings.monthStartDay) }
-        repeat(i.offset.coerceAtLeast(0)) { p = BudgetPeriod.next(p, i.settings.monthStartDay) }
-        val label = BudgetPeriod.label(p, i.settings.monthStartDay)
-        combine(c.repository.observeHistory(p, i.category, i.query), c.repository.allCategories) { exp, cats ->
-            HistoryState(i.settings, p, label, i.category, i.query, exp, cats)
-        }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    private data class In(val s: UserSettings, val off: Int, val cat: String?, val q: String, val t: Boolean)
 
-    private data class Inputs(val settings: UserSettings, val offset: Int, val category: String?, val query: String)
+    val state: StateFlow<HistoryState?> = combine(c.settings.flow, monthOffset, categoryFilter, query.debounce(200), includeTransfers) { s, o, cat, q, t -> In(s, o, cat, q, t) }
+        .flatMapLatest { i ->
+            var p = BudgetPeriod.containing(LocalDate.now(c.clock), i.s.monthStartDay)
+            repeat(-i.off) { p = BudgetPeriod.previous(p, i.s.monthStartDay) }
+            val label = BudgetPeriod.label(p, i.s.monthStartDay)
+            combine(c.repository.observeHistory(p, i.cat, i.q, i.t), c.repository.allCategories, c.repository.accounts) { exp, cats, acc ->
+                HistoryState(i.s, p, label, i.cat, i.q, i.t, exp, cats, acc.associateBy { it.id })
+            }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     fun previousMonth() { monthOffset.value -= 1 }
     fun nextMonth() { if (monthOffset.value < 0) monthOffset.value += 1 }
@@ -110,65 +108,65 @@ fun HistoryScreen(initialCategoryId: String?, onEdit: (String) -> Unit) {
     val undoLabel = stringResource(R.string.undo)
     LaunchedEffect(initialCategoryId) { if (initialCategoryId != null) vm.categoryFilter.value = initialCategoryId }
 
-    Scaffold(containerColor = androidx.compose.ui.graphics.Color.Transparent, contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0), snackbarHost = { SnackbarHost(snackbar) }) { padding ->
-        val s = state
-        if (s == null) { Box(Modifier.fillMaxSize().padding(padding)); return@Scaffold }
-        val byId = s.categories.associateBy { it.id }
+    Scaffold(containerColor = MaterialTheme.colorScheme.background, contentWindowInsets = androidx.compose.foundation.layout.WindowInsets(0, 0, 0, 0), snackbarHost = { SnackbarHost(snackbar) }) { padding ->
+        val s = state ?: run { Box(Modifier.fillMaxSize().padding(padding)); return@Scaffold }
         val groups = s.expenses.groupBy { it.localDate }
         LazyColumn(Modifier.fillMaxSize().padding(padding).statusBarsPadding()) {
             item {
-                Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    TextButton(onClick = vm::previousMonth) { Text("◀", modifier = Modifier.padding(horizontal = 4.dp)) }
-                    Text(s.periodLabel, style = MaterialTheme.typography.titleLarge)
-                    TextButton(onClick = vm::nextMonth, enabled = vm.canGoNext()) { Text("▶", modifier = Modifier.padding(horizontal = 4.dp)) }
+                Row(Modifier.fillMaxWidth().padding(start = 20.dp, end = 4.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Text(stringResource(R.string.nav_history), style = MaterialTheme.typography.headlineMedium, modifier = Modifier.weight(1f))
+                    MonthSwitcher(s.periodLabel, vm::previousMonth, vm::nextMonth, vm.canGoNext())
                 }
             }
             item {
                 OutlinedTextField(
                     value = s.query, onValueChange = { vm.query.value = it.take(60) }, singleLine = true,
-                    label = { Text(stringResource(R.string.search_notes)) },
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+                    placeholder = { Text(stringResource(R.string.search_spends)) },
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
             item {
-                LazyRow(contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 16.dp, vertical = 8.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                LazyRow(contentPadding = PaddingValues(horizontal = 16.dp), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     item { FilterChip(selected = s.categoryFilter == null, onClick = { vm.categoryFilter.value = null }, label = { Text(stringResource(R.string.filter_all)) }) }
                     items(s.categories.filter { !it.isArchived || it.id == s.categoryFilter }, key = { it.id }) { c ->
-                        FilterChip(selected = s.categoryFilter == c.id, onClick = { vm.categoryFilter.value = if (s.categoryFilter == c.id) null else c.id }, label = { Text("${c.iconKey} ${categoryName(c)}") })
+                        FilterChip(
+                            selected = s.categoryFilter == c.id, onClick = { vm.categoryFilter.value = if (s.categoryFilter == c.id) null else c.id },
+                            leadingIcon = { CategoryDot(c.colorKey) }, label = { Text(categoryName(c)) },
+                        )
                     }
+                    item { FilterChip(selected = s.includeTransfers, onClick = { vm.includeTransfers.value = !s.includeTransfers }, label = { Text(stringResource(R.string.filter_show_transfers)) }) }
                 }
             }
-            if (s.expenses.isEmpty()) {
-                item { EmptyState("🔍", stringResource(R.string.empty_history_title), stringResource(R.string.empty_history_body)) }
-            }
+            if (s.expenses.isEmpty()) item { EmptyNote(stringResource(R.string.empty_history_title), stringResource(R.string.empty_history_body)) }
+            val byId = s.categories.associateBy { it.id }
             groups.forEach { (date, list) ->
                 stickyHeader(key = "h-$date") {
-                    val totals = list.groupBy { it.currency }.map { (cur, es) -> es.sumOf { it.amountMinor } to cur }
-                    DayHeader(LocalDate.parse(date), totals)
+                    DayHeader(LocalDate.parse(date), list.filter { it.kind != TxnKind.TRANSFER && it.kind != TxnKind.IGNORED && it.kind != TxnKind.INCOME }
+                        .groupBy { it.currency }.map { (cur, es) -> es.sumOf { if (it.kind == TxnKind.EXPENSE) it.amountMinor else -it.amountMinor } to cur })
                 }
                 items(list, key = { it.id }) { e ->
-                    val dismiss = rememberSwipeToDismissBoxState(confirmValueChange = { value ->
-                        if (value == SwipeToDismissBoxValue.EndToStart) {
+                    val dismiss = rememberSwipeToDismissBoxState(confirmValueChange = { v ->
+                        if (v == SwipeToDismissBoxValue.EndToStart) {
                             vm.delete(e.id)
-                            scope.launch {
-                                val r = snackbar.showSnackbar(deletedMsg, actionLabel = undoLabel, duration = SnackbarDuration.Short)
-                                if (r == SnackbarResult.ActionPerformed) vm.undo(e.id)
-                            }
+                            scope.launch { if (snackbar.showSnackbar(deletedMsg, undoLabel, duration = SnackbarDuration.Short) == SnackbarResult.ActionPerformed) vm.undo(e.id) }
                             true
                         } else false
                     })
                     SwipeToDismissBox(
                         state = dismiss, enableDismissFromStartToEnd = false,
                         backgroundContent = {
-                            Box(Modifier.fillMaxSize().padding(horizontal = 24.dp), contentAlignment = Alignment.CenterEnd) {
-                                Text("🗑️ " + stringResource(R.string.delete), color = MaterialTheme.colorScheme.error)
+                            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.errorContainer).padding(horizontal = 24.dp), contentAlignment = Alignment.CenterEnd) {
+                                Text(stringResource(R.string.delete), color = MaterialTheme.colorScheme.onErrorContainer, style = MaterialTheme.typography.labelLarge)
                             }
                         },
                     ) {
-                        Box(Modifier.background(MaterialTheme.colorScheme.background)) { ExpenseRow(e, byId[e.categoryId], onClick = { onEdit(e.id) }) }
+                        Box(Modifier.background(MaterialTheme.colorScheme.background)) {
+                            ExpenseRow(e, byId[e.categoryId], e.accountId?.let { s.accounts[it]?.label }, onClick = { onEdit(e.id) })
+                        }
                     }
                 }
             }
+            item { androidx.compose.foundation.layout.Spacer(Modifier.padding(bottom = 32.dp)) }
         }
     }
 }

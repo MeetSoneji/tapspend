@@ -1,1 +1,1 @@
-Log an expense in 3 seconds. Offline, no ads, no internet permission.
+Card and UPI payments caught from bank alerts. Confirm in one tap. Offline.

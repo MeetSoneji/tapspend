@@ -56,6 +56,7 @@ class EditViewModel(private val c: AppContainer, private val id: String) : ViewM
             original = e
             val fd = Money.fractionDigits(e.currency)
             val text = BigDecimal.valueOf(e.amountMinor).movePointLeft(fd).let { if (fd == 0) it.toBigInteger().toString() else it.stripTrailingZeros().toPlainString() }
+            watchRefunds()
             entry.value = EntryState(e.currency, text, e.categoryId, e.note ?: "", Instant.ofEpochMilli(e.occurredAt))
             val all = c.repository.allCategories.first()
             _cats.value = all.filter { !it.isArchived || it.id == e.categoryId }
@@ -76,6 +77,15 @@ class EditViewModel(private val c: AppContainer, private val id: String) : ViewM
         onDone()
     }
 
+    val refunded = MutableStateFlow(0L)
+
+    fun watchRefunds() = viewModelScope.launch { c.repository.observeRefundedFor(id).collect { refunded.value = it } }
+
+    fun markRefunded(amountMinor: Long, onError: () -> Unit) {
+        val e = original ?: return
+        c.appScope.launch { runCatching { c.repository.markRefunded(e, amountMinor) }.onFailure { onError() } }
+    }
+
     fun delete(onDone: () -> Unit) {
         c.appScope.launch { c.repository.softDelete(id) }
         onDone()
@@ -89,6 +99,8 @@ fun EditScreen(id: String, onDone: () -> Unit) {
     val categories by vm.categories.collectAsStateWithLifecycle()
     val missing by vm.missing.collectAsStateWithLifecycle()
     var confirmDelete by remember { mutableStateOf(false) }
+    var refundDialog by remember { mutableStateOf(false) }
+    val refunded by vm.refunded.collectAsStateWithLifecycle()
     LaunchedEffect(missing) { if (missing) onDone() }
 
     Column(Modifier.fillMaxSize().statusBarsPadding().verticalScroll(rememberScrollState()).padding(16.dp)) {
@@ -101,7 +113,45 @@ fun EditScreen(id: String, onDone: () -> Unit) {
         if (state != null) {
             // In Edit, tapping a chip only selects it (never saves), so a stray tap cannot overwrite an expense.
             EntryForm(state = state, categories = categories, saveOnTap = false, onSave = { vm.save(it, onDone) }, saveLabel = stringResource(R.string.update))
+            val original = vm.original
+            if (original != null && original.kind == "EXPENSE") {
+                if (refunded > 0) Text(
+                    stringResource(R.string.refunded_so_far, Money.format(refunded, original.currency)),
+                    style = MaterialTheme.typography.bodyMedium, color = com.meetsoneji.tapspend.ui.theme.LocalLedger.current.credit,
+                    modifier = Modifier.padding(top = 12.dp),
+                )
+                if (refunded < original.amountMinor) androidx.compose.material3.OutlinedButton({ refundDialog = true }, Modifier.fillMaxWidth().padding(top = 12.dp)) {
+                    Text(stringResource(R.string.mark_refunded))
+                }
+            }
         }
+    }
+
+    val orig = vm.original
+    if (refundDialog && orig != null) {
+        val fd = Money.fractionDigits(orig.currency)
+        var text by remember { mutableStateOf(BigDecimal.valueOf(orig.amountMinor - refunded).movePointLeft(fd).stripTrailingZeros().toPlainString()) }
+        AlertDialog(
+            onDismissRequest = { refundDialog = false },
+            title = { Text(stringResource(R.string.mark_refunded)) },
+            text = {
+                Column {
+                    Text(stringResource(R.string.refund_dialog_body), style = MaterialTheme.typography.bodyMedium)
+                    androidx.compose.material3.OutlinedTextField(
+                        text, { t -> text = t.filter { it.isDigit() || it == '.' }.take(14) }, singleLine = true,
+                        prefix = { Text(Money.symbol(orig.currency)) }, modifier = Modifier.padding(top = 8.dp),
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal),
+                    )
+                }
+            },
+            confirmButton = {
+                TextButton({
+                    val minor = runCatching { Money.parseMinor(text, orig.currency) }.getOrNull()
+                    if (minor != null && minor in 1..(orig.amountMinor - refunded)) { vm.markRefunded(minor) {}; refundDialog = false }
+                }) { Text(stringResource(R.string.mark_refunded_confirm)) }
+            },
+            dismissButton = { TextButton({ refundDialog = false }) { Text(stringResource(R.string.cancel)) } },
+        )
     }
 
     if (confirmDelete) {

@@ -4,6 +4,12 @@
 
     <!-- Permission allowlist (checked in CI). There is deliberately NO INTERNET permission. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Auto-capture: read bank alerts on the device. Parsed locally; raw messages are never stored or sent. -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-permission android:name="android.permission.READ_SMS" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- SMS capture is optional: devices without a SIM still install and use notification capture / manual entry. -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
 
     <!-- WorkManager (pulled in by Glance) merges these; we strip the foreground-service parts we never use. -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
@@ -73,6 +79,38 @@
                 <action android:name="android.service.quicksettings.action.QS_TILE" />
             </intent-filter>
             <meta-data android:name="android.service.quicksettings.ACTIVE_TILE" android:value="false" />
+        </service>
+
+        <!-- Bank SMS: only the telephony stack (BROADCAST_SMS) can deliver to this receiver. -->
+        <receiver
+            android:name=".capture.SmsReceiver"
+            android:exported="true"
+            android:permission="android.permission.BROADCAST_SMS">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
+
+        <receiver android:name=".capture.ReviewActionReceiver" android:exported="false" />
+
+        <receiver android:name=".capture.ReminderReceiver" android:exported="false">
+            <intent-filter>
+                <action android:name="com.meetsoneji.tapspend.ACTION_REVIEW_REMINDER" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+            </intent-filter>
+        </receiver>
+
+        <!-- Payment-app alerts (UPI apps etc.). Only the system can bind it, and only after you grant access. -->
+        <service
+            android:name=".capture.PaymentNotificationListener"
+            android:exported="true"
+            android:label="@string/app_name"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
         </service>
 
         <!-- No foreground services, ever. -->

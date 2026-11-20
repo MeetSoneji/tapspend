@@ -14,6 +14,8 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.time.Clock
 
 /** Hand-rolled service locator: small, no code generation, and everything is lazy so cold start stays cheap. */
@@ -28,6 +30,7 @@ class AppContainer(context: Context) {
     val database by lazy { AppDatabase.build(appContext) }
     val widgetUpdater by lazy { WidgetUpdater(appContext, appScope) }
     val repository by lazy { ExpenseRepository(database, clock) { widgetUpdater.requestUpdate() } }
+    val capture by lazy { com.meetsoneji.tapspend.capture.CaptureEngine(this) }
 
     /**
      * In-memory category cache so Quick Log's first frame never waits on disk. Starts empty on a cold
@@ -47,6 +50,10 @@ class TapspendApp : Application() {
         container = AppContainer(this)
         container.categoryCache // warm lazily on a background thread
         MidnightScheduler.schedule(this)
+        container.appScope.launch {
+            val s = container.settings.flow.first()
+            com.meetsoneji.tapspend.capture.ReminderScheduler.schedule(this@TapspendApp, s.reminderEnabled, s.reminderMinutes)
+        }
     }
 }
 

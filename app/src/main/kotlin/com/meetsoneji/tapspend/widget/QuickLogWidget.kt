@@ -63,6 +63,7 @@ data class WidgetSnapshot(
     val categories: List<WidgetCategory>,
     val recent: List<WidgetRecent>,
     val hidden: Boolean,
+    val toReview: Int,
 )
 
 private const val HIDDEN = "••••"
@@ -108,6 +109,7 @@ class QuickLogWidget : GlanceAppWidget() {
             categories = cats.take(4).map { WidgetCategory(it.id, it.iconKey, categoryDisplayName(context, it)) },
             recent = recent,
             hidden = hide,
+            toReview = dao.pendingCount(),
         )
     }
 
@@ -180,6 +182,12 @@ private fun MediumBody(context: Context, s: WidgetSnapshot) {
                 )
                 Spacer(GlanceModifier.width(8.dp))
                 Text(s.budgetLine, style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp), maxLines = 1)
+            } else if (s.toReview > 0) {
+                Text(
+                    context.getString(R.string.widget_to_review, s.toReview),
+                    style = TextStyle(color = GlanceTheme.colors.tertiary, fontSize = 12.sp, fontWeight = FontWeight.Medium), maxLines = 1,
+                    modifier = GlanceModifier.clickable(actionStartActivity(Intent(context, MainActivity::class.java).setAction(MainActivity.ACTION_REVIEW))),
+                )
             } else {
                 Text(context.getString(R.string.widget_month_line, s.monthText), style = TextStyle(color = GlanceTheme.colors.onSurfaceVariant, fontSize = 11.sp), maxLines = 1)
             }
