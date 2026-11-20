@@ -105,7 +105,7 @@
     <string name="onb_start">Get started</string>
     <string name="pick_category_to_save">Tap a category to save</string>
     <string name="pick_currency">Choose currency</string>
-    <string name="privacy_text">This app collects no data. No accounts, no analytics, no ads.\n\nIt has no INTERNET permission, so your data cannot leave the phone. Exports go only where you choose.\n\nPermissions:\n• USE_BIOMETRIC: optional app lock only.\n• WAKE_LOCK, ACCESS_NETWORK_STATE, RECEIVE_BOOT_COMPLETED: used by the Jetpack widget library; never to send data.\n\nFound a security problem? Please report it privately through a GitHub security advisory.</string>
+    <string name="privacy_text">This app collects no data. No accounts, no analytics, no ads.\n\nIt has no INTERNET permission, so your data cannot leave the phone. Exports go only where you choose.\n\nPermissions:\n• WAKE_LOCK, ACCESS_NETWORK_STATE, RECEIVE_BOOT_COMPLETED: used by the Jetpack widget library; never to send data.\n\nFound a security problem? Please report it privately through a GitHub security advisory.</string>
     <string name="quick_tap_tip">On a Pixel? Go to Settings → System → Gestures → Quick Tap → Open app, then choose this app (pick the \"Log expense\" shortcut if offered).</string>
     <string name="recent_title">Recent</string>
     <string name="save">Save</string>
@@ -142,6 +142,7 @@
     <string name="set_logging">Logging</string>
     <string name="set_manage_categories">Manage categories</string>
     <string name="set_manage_categories_sub">Add, rename, recolour, reorder, archive</string>
+    <string name="set_month">Month</string>
     <string name="set_month_start">Month starts on</string>
     <string name="set_month_start_value">Day %1$d of each month</string>
     <string name="set_name">Your name</string>

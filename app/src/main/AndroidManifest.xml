@@ -3,7 +3,6 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <!-- Permission allowlist (checked in CI). There is deliberately NO INTERNET permission. -->
-    <uses-permission android:name="android.permission.USE_BIOMETRIC" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- WorkManager (pulled in by Glance) merges these; we strip the foreground-service parts we never use. -->

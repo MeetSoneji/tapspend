@@ -10,10 +10,10 @@ Tapspend is a tiny, private expense tracker built around one promise: log an exp
 <b>Private by design</b>
 • No INTERNET permission at all. It cannot send your data anywhere, and you can verify that in the manifest.
 • No accounts, no ads, no analytics, no trackers.
-• Optional app lock (fingerprint / PIN), hide amounts on the widget, hide the app from Recents.
+• Hide amounts on the widget and hide the app from screenshots and Recents.
 
 <b>Useful</b>
-• Month budget ring with friendly nudges, daily and category insights, search and filters.
+• Daily and category insights, search and filters.
 • Salary-cycle months (start the month on any day 1 to 28).
 • Export to CSV, or a password-encrypted backup you can restore on a new phone.
 

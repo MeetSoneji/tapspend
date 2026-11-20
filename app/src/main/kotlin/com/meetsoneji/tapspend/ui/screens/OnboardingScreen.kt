@@ -73,7 +73,7 @@ fun OnboardingScreen() {
     var pickCurrency by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize().safeDrawingPadding().imePadding().verticalScroll(rememberScrollState()).padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        LinearProgressIndicator(progress = { (step + 1) / 3f }, modifier = Modifier.fillMaxWidth())
+        LinearProgressIndicator(progress = { (step + 1) / 2f }, modifier = Modifier.fillMaxWidth())
         com.meetsoneji.tapspend.ui.theme.BrandMark(72.dp)
         when (step) {
             0 -> {
@@ -85,7 +85,7 @@ fun OnboardingScreen() {
                     AssistChip(onClick = { pickCurrency = true }, label = { Text("$currency  ${Money.symbol(currency)}") })
                 }
             }
-            1 -> {
+            -1 -> {
                 Text(stringResource(R.string.onb2_title), style = MaterialTheme.typography.headlineMedium)
                 Text(stringResource(R.string.onb2_body), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 OutlinedTextField(
@@ -103,13 +103,12 @@ fun OnboardingScreen() {
         }
         Spacer(Modifier.height(8.dp))
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-            if (step > 0) TextButton({ step-- }) { Text(stringResource(R.string.back)) } else Spacer(Modifier.height(1.dp))
+            if (step > 0) TextButton({ step = 0 }) { Text(stringResource(R.string.back)) } else Spacer(Modifier.height(1.dp))
             Row {
-                if (step == 1) TextButton({ vm.saveBudget(null); step++ }) { Text(stringResource(R.string.skip)) }
                 Button(
                     onClick = {
                         when (step) {
-                            0 -> { vm.saveStep1(name, currency); step = 1 }
+                            0 -> { vm.saveStep1(name, currency); step = 2 }
                             1 -> {
                                 val minor = runCatching { Money.parseMinor(budget, currency) }.getOrNull()?.takeIf { it in 1..Money.MAX_MINOR }
                                 vm.saveBudget(minor); step = 2

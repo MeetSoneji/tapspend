@@ -73,11 +73,8 @@ fun quickLogIntent(context: android.content.Context): Intent =
 @Composable
 fun AppRoot(
     settings: UserSettings?,
-    locked: Boolean,
-    onRequestUnlock: () -> Unit,
     pendingEditId: String?,
     onEditHandled: () -> Unit,
-    canUseAppLock: () -> Boolean,
 ) {
     TapspendTheme(
         mode = settings?.theme ?: com.meetsoneji.tapspend.data.ThemeMode.SYSTEM,
@@ -87,29 +84,17 @@ fun AppRoot(
         Surface(Modifier.fillMaxSize(), color = androidx.compose.ui.graphics.Color.Transparent, contentColor = MaterialTheme.colorScheme.onBackground) {
             when {
                 settings == null -> Unit // splash is still showing; nothing composed yet
-                settings.appLockEnabled && locked -> LockScreen(onRequestUnlock) // while locked, no content is composed at all
                 !settings.onboardingDone -> OnboardingScreen()
-                else -> MainNav(pendingEditId, onEditHandled, canUseAppLock)
+                else -> MainNav(pendingEditId, onEditHandled)
             }
         }
-    }
-}
-
-@Composable
-private fun LockScreen(onUnlock: () -> Unit) {
-    LaunchedEffect(Unit) { onUnlock() }
-    Column(Modifier.fillMaxSize().padding(32.dp), verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
-        com.meetsoneji.tapspend.ui.theme.BrandMark(80.dp)
-        Text(stringResource(R.string.lock_title), style = MaterialTheme.typography.headlineMedium, textAlign = TextAlign.Center)
-        Text(stringResource(R.string.lock_body), style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(vertical = 12.dp))
-        Button(onClick = onUnlock) { Text(stringResource(R.string.lock_unlock)) }
     }
 }
 
 private data class Tab(val route: Any, val icon: @Composable () -> Unit, val label: Int, val matches: (androidx.navigation.NavDestination) -> Boolean)
 
 @Composable
-private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit, canUseAppLock: () -> Boolean) {
+private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit) {
     val nav = rememberNavController()
     val tabs = listOf(
         Tab(HomeRoute, { androidx.compose.material3.Icon(Icons.Default.Home, null) }, R.string.nav_home) { it.hasRoute<HomeRoute>() },
@@ -163,7 +148,7 @@ private fun MainNav(pendingEditId: String?, onEditHandled: () -> Unit, canUseApp
             composable<InsightsRoute> {
                 InsightsScreen(onCategory = { id -> nav.navigate(HistoryRoute(id)) { launchSingleTop = true } })
             }
-            composable<SettingsRoute> { SettingsScreen(onCategories = { nav.navigate(CategoriesRoute) }, canUseAppLock = canUseAppLock) }
+            composable<SettingsRoute> { SettingsScreen(onCategories = { nav.navigate(CategoriesRoute) }) }
             composable<CategoriesRoute> { CategoriesScreen(onBack = { nav.popBackStack() }) }
             composable<EditRoute> { entry ->
                 val route = entry.toRoute<EditRoute>()

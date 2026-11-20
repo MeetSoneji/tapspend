@@ -7,8 +7,6 @@ MANIFEST="${1:-app/build/intermediates/merged_manifests/release/processReleaseMa
 [ -f "$MANIFEST" ] || { echo "Merged manifest not found: $MANIFEST (run ./gradlew :app:assembleRelease first)"; exit 2; }
 
 ALLOWED=(
-  "android.permission.USE_BIOMETRIC"
-  "android.permission.USE_FINGERPRINT"          # added by androidx.biometric
   "android.permission.RECEIVE_BOOT_COMPLETED"   # midnight widget reset + WorkManager (Glance)
   "android.permission.WAKE_LOCK"                # WorkManager (Glance widget updates)
   "android.permission.ACCESS_NETWORK_STATE"     # WorkManager; cannot send data

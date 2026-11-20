@@ -63,13 +63,13 @@ class SettingsRepository(private val context: Context) {
         UserSettings(
             userName = p[K.userName] ?: d.userName,
             currency = p[K.currency] ?: d.currency,
-            monthlyBudgetMinor = p[K.budget],
+            monthlyBudgetMinor = null, // budgets were removed in 1.0.1; old values are ignored
             monthStartDay = (p[K.startDay] ?: d.monthStartDay).coerceIn(1, 28),
             saveOnCategoryTap = p[K.saveOnTap] ?: d.saveOnCategoryTap,
             hapticsEnabled = p[K.haptics] ?: d.hapticsEnabled,
             theme = runCatching { ThemeMode.valueOf(p[K.theme] ?: "") }.getOrDefault(d.theme),
             dynamicColor = p[K.dynamic] ?: d.dynamicColor,
-            appLockEnabled = p[K.appLock] ?: d.appLockEnabled,
+            appLockEnabled = false, // app lock was removed in 1.0.1; an old 'on' value must never lock anyone out
             hideAmountsOnWidget = p[K.hideWidget] ?: d.hideAmountsOnWidget,
             secureScreen = p[K.secure] ?: d.secureScreen,
             onboardingDone = p[K.onboarded] ?: d.onboardingDone,

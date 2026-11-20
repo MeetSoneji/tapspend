@@ -10,7 +10,6 @@ Your expenses live in an on-device database. They leave the phone only when *you
 
 | Permission | Why |
 |---|---|
-| `USE_BIOMETRIC` / `USE_FINGERPRINT` | Optional app lock. |
 | `RECEIVE_BOOT_COMPLETED` | Re-arm the single midnight alarm that resets the widget's "today" after a reboot. |
 | `WAKE_LOCK`, `ACCESS_NETWORK_STATE` | Added by Jetpack WorkManager (used by the Glance widget library). We never use them to read or send data. |
 

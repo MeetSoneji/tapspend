@@ -25,8 +25,8 @@ android {
         applicationId = appConfig.getProperty("app.id")
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
         resValue("string", "app_name", appConfig.getProperty("app.name"))
         resValue("string", "app_tagline", appConfig.getProperty("app.tagline"))
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -118,8 +118,6 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.glance.appwidget)
     implementation(libs.androidx.glance.material3)
-    implementation(libs.androidx.biometric)
-    implementation(libs.androidx.fragment) // biometric 1.1.0 drags in an ancient Fragment; the ActivityResult APIs need >= 1.3
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.kotlinx.serialization.json)
     debugImplementation(libs.androidx.compose.ui.tooling)

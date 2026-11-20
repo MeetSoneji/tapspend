@@ -154,18 +154,7 @@ private fun MonthCard(s: HomeState) {
                     // Totals are never converted: one figure per currency used this month.
                     s.monthTotals.forEach { Text(Money.format(it.total, it.currency), style = MaterialTheme.typography.displaySmall.merge(TabularFigures), maxLines = 1) }
                 }
-                if (budget != null) {
-                    val msg = when (budgetState(spentDefault, budget)) {
-                        BudgetState.GOOD -> R.string.budget_msg_good
-                        BudgetState.WARNING -> R.string.budget_msg_warning
-                        BudgetState.OVER -> R.string.budget_msg_over
-                    }
-                    Text(stringResource(msg), style = MaterialTheme.typography.bodyMedium)
-                } else {
-                    Text(stringResource(R.string.budget_not_set), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
             }
-            if (budget != null) BudgetRing(spentDefault, budget, cur)
         }
     }
 }

@@ -19,7 +19,7 @@ An open-source, offline-first Android expense tracker with one promise: **log an
 
 ## Features
 
-Quick Log sheet · widget (3 sizes) · QS tile · app shortcut · budget ring with friendly nudges · History with search, filters, swipe-to-delete + Undo · Insights (donut + daily bars, per-currency) · custom categories (emoji + colour, reorder, archive) · CSV export · password-encrypted JSON backup/restore · app lock (biometric/PIN) · hide amounts on widget · secure screen · dark mode & dynamic colour · TalkBack-friendly.
+Quick Log sheet · widget (3 sizes) · QS tile · app shortcut · History with search, filters, swipe-to-delete + Undo · Insights (donut + daily bars, per-currency) · custom categories (emoji + colour, reorder, archive) · CSV export · password-encrypted JSON backup/restore · hide amounts on widget · secure screen · dark mode & dynamic colour · TalkBack-friendly.
 
 ## Install
 
@@ -40,7 +40,7 @@ No keys, accounts or secrets are needed. Rebrand a fork by editing `app.config.p
 
 ## How it's built
 
-Kotlin · Jetpack Compose + Material 3 · Room (SQLite, schema exported to `app/schemas/`) · Preferences DataStore · Jetpack Glance (widget) · Navigation Compose (type-safe routes) · BiometricPrompt. Money is always a `Long` in minor units plus an ISO-4217 code, never a float. All totals are SQL `SUM … GROUP BY`. Architecture notes and trade-offs are in [`docs/adr/`](docs/adr).
+Kotlin · Jetpack Compose + Material 3 · Room (SQLite, schema exported to `app/schemas/`) · Preferences DataStore · Jetpack Glance (widget) · Navigation Compose (type-safe routes) · Glance. Money is always a `Long` in minor units plus an ISO-4217 code, never a float. All totals are SQL `SUM … GROUP BY`. Architecture notes and trade-offs are in [`docs/adr/`](docs/adr).
 
 ## Privacy & security
 

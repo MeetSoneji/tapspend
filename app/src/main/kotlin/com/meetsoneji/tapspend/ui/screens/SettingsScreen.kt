@@ -92,7 +92,6 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
     fun setHaptics(v: Boolean) = set { c.settings.setHaptics(v) }
     fun setTheme(v: ThemeMode) = set { c.settings.setTheme(v) }
     fun setDynamic(v: Boolean) = set { c.settings.setDynamicColor(v) }
-    fun setAppLock(v: Boolean) = set { c.settings.setAppLock(v) }
     fun setHideWidget(v: Boolean) = set { c.settings.setHideAmountsOnWidget(v) }
     fun setSecure(v: Boolean) = set { c.settings.setSecureScreen(v) }
 
@@ -207,7 +206,7 @@ class SettingsViewModel(private val c: AppContainer) : ViewModel() {
 }
 
 @Composable
-fun SettingsScreen(onCategories: () -> Unit, canUseAppLock: () -> Boolean) {
+fun SettingsScreen(onCategories: () -> Unit) {
     val vm = appViewModel { SettingsViewModel(it) }
     val s by vm.settings.collectAsStateWithLifecycle()
     val message by vm.message.collectAsStateWithLifecycle()
@@ -237,8 +236,7 @@ fun SettingsScreen(onCategories: () -> Unit, canUseAppLock: () -> Boolean) {
         Row2(R.string.set_name, settings.userName.ifBlank { stringResource(R.string.set_name_empty) }) { dialog = "name" }
         Row2(R.string.set_currency, settings.currency) { dialog = "currency" }
 
-        SectionLabel(stringResource(R.string.set_budget))
-        Row2(R.string.set_budget_amount, settings.monthlyBudgetMinor?.let { Money.format(it, settings.currency) } ?: stringResource(R.string.budget_not_set)) { dialog = "budget" }
+        SectionLabel(stringResource(R.string.set_month))
         Row2(R.string.set_month_start, stringResource(R.string.set_month_start_value, settings.monthStartDay)) { dialog = "startday" }
 
         SectionLabel(stringResource(R.string.categories_title))
@@ -260,9 +258,6 @@ fun SettingsScreen(onCategories: () -> Unit, canUseAppLock: () -> Boolean) {
         Text(stringResource(R.string.quick_tap_tip), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp))
 
         SectionLabel(stringResource(R.string.set_privacy))
-        SwitchRow(R.string.set_app_lock, R.string.set_app_lock_sub, settings.appLockEnabled) { on ->
-            if (on && !canUseAppLock()) Toast.makeText(context, R.string.msg_no_screen_lock, Toast.LENGTH_LONG).show() else vm.setAppLock(on)
-        }
         SwitchRow(R.string.set_hide_widget, R.string.set_hide_widget_sub, settings.hideAmountsOnWidget, vm::setHideWidget)
         SwitchRow(R.string.set_secure, R.string.set_secure_sub, settings.secureScreen, vm::setSecure)
 
@@ -281,7 +276,6 @@ fun SettingsScreen(onCategories: () -> Unit, canUseAppLock: () -> Boolean) {
     when (dialog) {
         "name" -> TextInputDialog(R.string.set_name, settings.userName, KeyboardType.Text, onDismiss = { dialog = null }) { vm.setName(it); dialog = null }
         "currency" -> CurrencyPickerDialog(settings.currency, { dialog = null }) { vm.setCurrency(it); dialog = null }
-        "budget" -> BudgetDialog(settings, onDismiss = { dialog = null }) { vm.setBudget(it); dialog = null }
         "startday" -> StartDayDialog(settings.monthStartDay, { dialog = null }) { vm.setStartDay(it); dialog = null }
         "theme" -> ThemeDialog(settings.theme, { dialog = null }) { vm.setTheme(it); dialog = null }
         "exportpw" -> PasswordDialog(R.string.export_pw_title, R.string.export_pw_body, allowEmpty = true, onDismiss = { dialog = null }) { pw ->
