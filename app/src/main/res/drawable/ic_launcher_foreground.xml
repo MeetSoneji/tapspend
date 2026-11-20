@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A rupee sign with a violet spark. Stays inside the 66dp adaptive safe zone. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+    <path android:pathData="M38,36 H70" android:strokeColor="#FF22D3EE" android:strokeWidth="6" android:strokeLineCap="round" />
+    <path android:pathData="M38,47 H70" android:strokeColor="#FF22D3EE" android:strokeWidth="6" android:strokeLineCap="round" />
+    <path android:pathData="M42,36 H54 C66,36 66,56 54,56 H42" android:strokeColor="#FF22D3EE" android:strokeWidth="6" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M42,56 L64,80" android:strokeColor="#FF22D3EE" android:strokeWidth="6" android:strokeLineCap="round" />
+    <path android:pathData="M79,24 L75,33 H81 L77,42" android:strokeColor="#FFA78BFA" android:strokeWidth="4" android:strokeLineCap="round" android:strokeLineJoin="round" />
+</vector>

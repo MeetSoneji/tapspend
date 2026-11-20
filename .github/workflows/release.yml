@@ -1,0 +1,49 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Unit tests
+        run: ./gradlew :app:testDebugUnitTest --console=plain
+      - name: Restore signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          echo "$KEYSTORE_BASE64" | base64 -d > release.jks
+          cat > keystore.properties <<PROPS
+          storeFile=release.jks
+          storePassword=$KEYSTORE_PASSWORD
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASSWORD
+          PROPS
+      - name: Build signed release APK
+        run: ./gradlew :app:assembleRelease --console=plain
+      - name: Permission allowlist
+        run: ./scripts/check-permissions.sh
+      - name: Name APK and write SHA-256
+        run: |
+          mkdir dist
+          # Fixed file name so https://github.com/<owner>/<repo>/releases/latest/download/Tapspend.apk always works.
+          cp app/build/outputs/apk/release/app-release.apk dist/Tapspend.apk
+          (cd dist && sha256sum Tapspend.apk > Tapspend.apk.sha256)
+      - name: Publish GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" dist/* --title "Tapspend $GITHUB_REF_NAME" --generate-notes

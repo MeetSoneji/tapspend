@@ -1,0 +1,11 @@
+[
+  {"key": "food", "icon": "🍛", "color": "amber", "name": "Food"},
+  {"key": "chai", "icon": "☕", "color": "orange", "name": "Snacks & tea"},
+  {"key": "groceries", "icon": "🛒", "color": "green", "name": "Groceries"},
+  {"key": "transport", "icon": "🛺", "color": "blue", "name": "Transport"},
+  {"key": "shopping", "icon": "🛍️", "color": "pink", "name": "Shopping"},
+  {"key": "bills", "icon": "💡", "color": "indigo", "name": "Bills"},
+  {"key": "health", "icon": "💊", "color": "rose", "name": "Health"},
+  {"key": "entertainment", "icon": "🎬", "color": "purple", "name": "Entertainment"},
+  {"key": "other", "icon": "🧾", "color": "slate", "name": "Other"}
+]

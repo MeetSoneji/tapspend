@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_add"
+        android:shortcutId="log_expense"
+        android:shortcutLongLabel="@string/shortcut_log_long"
+        android:shortcutShortLabel="@string/shortcut_log_short">
+        <intent
+            android:action="com.meetsoneji.tapspend.ACTION_QUICK_LOG"
+            android:targetClass="com.meetsoneji.tapspend.MainActivity"
+            android:targetPackage="@string/app_package" />
+    </shortcut>
+</shortcuts>

@@ -1,0 +1,1 @@
+Log an expense in 3 seconds. Offline, no ads, no internet permission.
